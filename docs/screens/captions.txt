@@ -1,0 +1,14 @@
+realty_01_welcome: Welcome with sample questions
+realty_02_search: Free-text request → structured search → listing card
+realty_03_rag: Answers from the agency's documents, with sources
+realty_04_booking: Viewing request: phone via Telegram's contact button
+realty_05_lead: The agent gets the lead with the conversation
+realty_06_language: Replies in the client's language; stays on topic
+realty_07_admin: Owner report: questions, hand-offs, leads, token cost
+shop_01_welcome: Welcome with sample questions
+shop_02_search: Needs → filters + semantic ranking → product cards
+shop_03_rag: Delivery and return rules from the store's documents
+shop_04_order: Order request with one tap
+shop_05_lead: The team gets the order lead with the conversation
+shop_06_handoff: Honest about limits, hands off to a person
+shop_07_admin: Owner report: questions, hand-offs, leads, token cost

@@ -1,0 +1,33 @@
+"""Fixed bot texts (English). Model replies follow the user's language."""
+
+HELP = (
+    "<b>How to use me</b>\n"
+    "Just write your question or what you're looking for — in any language.\n"
+    "Tap a card button to book or order; I'll ask for your phone number.\n\n"
+    "/start — sample questions\n/help — this message\n/cancel — stop the current step"
+)
+EXAMPLES_TITLE = "Try one of these:"
+THINKING_FAILED = "⚠️ I couldn't answer right now. A colleague can help — please share your phone number below."
+RATE_LIMITED = "You've sent a lot of messages in the last hour. Please try again a bit later, or ask for a person."
+TEXT_ONLY = "I can read text messages only. Please type your question."
+SOURCES = "📚 <i>Sources: {items}</i>"
+ASK_PHONE_HUMAN = "👤 A colleague will contact you. Share your phone number with the button below (or type it)."
+PHONE_HINT = "📱 Share your phone number with the button below (or type it)."
+SHARE_PHONE = "📱 Share my phone number"
+CANCEL = "✖️ Cancel"
+CANCELLED = "OK, cancelled. Ask me anything."
+NOTHING_TO_CANCEL = "Nothing to cancel 🙂"
+BAD_PHONE = "Please send a valid phone number (digits, may start with +) or tap the button."
+LEAD_THANKS = "✅ Thank you! We'll contact you at {phone} within 2 working hours."
+ITEM_GONE = "This item is no longer available. Ask me for alternatives!"
+LEAD_NOTIFY = "🔔 <b>New {kind} lead #{id}</b>\nFrom: {user}\nPhone: <code>{phone}</code>{item}{note}\n\n<b>Last messages</b>\n{transcript}"
+ADMIN_STATS = (
+    "📊 <b>{company} assistant</b> · {provider}\n\n"
+    "👥 Users: <b>{users}</b> · conversations: <b>{conversations}</b>\n"
+    "💬 Questions: <b>{questions}</b> · with sources cited: {with_sources} · cards shown: {with_cards}\n"
+    "🙋 Hand-offs to a person: {handoffs}\n"
+    "📥 Leads: <b>{leads}</b> ({lead_kinds})\n\n"
+    "🧮 Tokens{estimated}: {tokens_in:,} in / {tokens_out:,} out\n"
+    "💵 Estimated model cost: <b>${cost:.4f}</b> (≈ ${per_question:.5f} per question, at ${p_in}/{p_out} per 1M tokens)"
+)
+EXPORT_EMPTY = "No leads yet."

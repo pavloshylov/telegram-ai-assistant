@@ -1,0 +1,21 @@
+id,category,title,brand,price_eur,stock,anc,water_rating,battery_h,multipoint,warranty_years,description
+NA-01,over-ear,Aria ANC 700,Aria,249,12,yes,none,30,yes,3,Flagship over-ear headphones with adaptive noise cancelling and multipoint.
+NA-02,over-ear,Aria ANC 500,Aria,179,20,yes,none,40,yes,2,Lighter ANC headphones with long battery life.
+NA-03,over-ear,Basso Studio,Basso,129,8,no,none,0,no,2,Wired studio headphones for music production. Detachable cable.
+NA-04,over-ear,Nordwave Travel,Nordwave,149,0,yes,none,35,no,2,Foldable ANC headphones for travel. Currently out of stock.
+NA-05,over-ear,Aria Kids,Aria,59,25,no,none,25,no,2,Volume limited to 85 dB. Durable for children.
+NA-06,earbuds,Pulse Sport 2,Pulse,89,30,no,IPX5,8,no,2,Sport earbuds with ear hooks. Sweat resistant.
+NA-07,earbuds,Pulse Pro ANC,Pulse,159,14,yes,IPX4,7,yes,2,Compact ANC earbuds with multipoint and wireless charging.
+NA-08,earbuds,Nordwave Buds,Nordwave,49,40,no,IPX4,6,no,2,Budget earbuds with a pocket-size case.
+NA-09,earbuds,Aria Buds ANC,Aria,199,9,yes,IPX4,8,yes,3,Premium ANC earbuds with spatial audio.
+NA-10,earbuds,Pulse Run Open,Pulse,119,11,no,IP67,10,no,2,Open-ear sport earbuds; you can hear traffic while running.
+NA-11,speaker,Boom Go,Boom,69,18,no,IP67,12,no,2,Small waterproof speaker for the beach or shower.
+NA-12,speaker,Boom Max,Boom,229,6,no,IP67,24,no,2,Loud party speaker with a carrying strap.
+NA-13,speaker,Nordwave Home,Nordwave,179,10,no,none,0,yes,2,Wi-Fi and Bluetooth home speaker; plugs into the wall.
+NA-14,speaker,Boom Mini,Boom,39,35,no,IPX4,8,no,2,Pocket speaker for podcasts and calls.
+NA-15,over-ear,Basso Gamer,Basso,99,15,no,none,0,no,2,Wired gaming headset with a detachable microphone.
+NA-16,earbuds,Aria Buds Lite,Aria,99,22,no,IPX4,7,yes,2,Light everyday earbuds with multipoint.
+NA-17,over-ear,Nordwave Office,Nordwave,129,13,yes,none,45,yes,2,Headphones for calls with a boom-free noise-filtering mic.
+NA-18,speaker,Boom Bar,Boom,299,4,no,none,0,yes,2,Soundbar for TV with Bluetooth.
+NA-19,earbuds,Pulse Swim,Pulse,139,7,no,IPX8,8,no,2,Waterproof earbuds with built-in MP3 storage for swimming.
+NA-20,accessory,Ear pad set Aria 700,Aria,29,50,no,none,0,no,1,Replacement ear pads for Aria ANC 700.

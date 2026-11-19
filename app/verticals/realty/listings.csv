@@ -1,0 +1,21 @@
+id,deal,district,title,rooms,area_m2,price_eur,floor,furnished,pets,available_from,description
+NH-101,rent,Alfama,Bright 1-bedroom with river view,1,52,1350,3,yes,no,2026-12-01,Renovated flat in a historic building with a view of the Tagus. No lift.
+NH-102,rent,Baixa,Modern studio near Rua Augusta,0,34,1100,2,yes,no,2026-11-25,Compact studio with air conditioning and a fitted kitchen. Utilities included.
+NH-103,rent,Chiado,Elegant 2-bedroom with balcony,2,88,2300,4,yes,yes,2026-12-15,High ceilings and a balcony over the street. Lift. Pets allowed.
+NH-104,rent,Campo de Ourique,Family 3-bedroom near Jardim da Parada,3,120,2600,1,no,yes,2027-01-01,Quiet street close to schools and the market. Pets allowed.
+NH-105,rent,Avenidas Novas,2-bedroom near Saldanha metro,2,80,1750,5,yes,no,2026-12-01,Two bedrooms and a home office corner. Lift and storage room.
+NH-106,rent,Parque das Nações,New-build 2-bedroom with pool,2,95,2100,7,yes,yes,2026-12-10,Building with pool and gym. Parking space included. Pets allowed.
+NH-107,rent,Belém,1-bedroom near the river promenade,1,60,1300,2,yes,yes,2026-11-28,Ten minutes' walk to the river. Pets allowed. Flexible term.
+NH-108,rent,Avenidas Novas,Furnished 1-bedroom for professionals,1,55,1250,3,yes,no,2026-12-05,Fast fibre internet and a desk. Flexible term from 3 months.
+NH-109,rent,Campo de Ourique,2-bedroom with garden terrace,2,85,1950,0,no,yes,2027-01-10,Ground floor with a private terrace. Pets allowed.
+NH-110,rent,Chiado,Penthouse 3-bedroom with terrace,3,140,3900,6,yes,no,2027-01-15,Top-floor flat with a large terrace and city views. Lift.
+NH-111,rent,Alfama,2-bedroom duplex in a historic building,2,78,1650,2,yes,yes,2026-12-20,Duplex with exposed stone walls. No lift. Pets allowed.
+NH-112,rent,Parque das Nações,Studio near Oriente station,0,38,1050,4,yes,no,2026-11-30,New building with a lift. Five minutes to the metro and trains.
+NH-201,sale,Alfama,Renovated 1-bedroom for sale,1,55,365000,2,no,yes,2026-11-20,Fully renovated in 2024. Good rental potential.
+NH-202,sale,Campo de Ourique,2-bedroom with balcony for sale,2,90,620000,3,no,yes,2026-11-20,Bright corner flat with a balcony. Lift.
+NH-203,sale,Parque das Nações,3-bedroom with parking for sale,3,130,890000,8,no,yes,2026-11-20,River view. Two parking spaces and storage.
+NH-204,sale,Avenidas Novas,2-bedroom near Saldanha for sale,2,82,540000,4,no,yes,2026-11-20,Central location near metro and shops. Lift.
+NH-205,sale,Belém,Townhouse with garden for sale,4,180,1250000,0,no,yes,2026-11-20,Three floors with a private garden near the monastery.
+NH-206,sale,Baixa,Studio investment flat for sale,0,32,265000,3,yes,no,2026-11-20,Currently rented at 1050 EUR per month.
+NH-207,sale,Chiado,2-bedroom in a restored palace for sale,2,105,890000,2,no,yes,2026-11-20,Original tiles and high ceilings. Lift.
+NH-208,sale,Campo de Ourique,1-bedroom near the market for sale,1,58,395000,1,no,yes,2026-11-20,Quiet street. Recently renovated kitchen.
