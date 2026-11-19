@@ -100,6 +100,8 @@ def make_engine(database_url: str) -> AsyncEngine:
     url = make_url(database_url)
     if url.get_backend_name() == "sqlite" and url.database and url.database != ":memory:":
         Path(url.database).parent.mkdir(parents=True, exist_ok=True)
+    if url.get_backend_name() == "sqlite":  # several widget visitors write at once: wait for the lock, don't fail
+        return create_async_engine(database_url, connect_args={"timeout": 30})
     return create_async_engine(database_url, pool_pre_ping=True)
 
 

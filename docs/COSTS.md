@@ -20,14 +20,24 @@ Prices change often — re-check before quoting a client.
 | Model (provider) | Input / Output per 1M tokens | ≈ per 1,000 conversations | Notes |
 |---|---|---|---|
 | gpt-5-nano (OpenAI) | $0.05 / $0.40 | **$1.30** | cheapest listed option |
-| gemini-2.5-flash-lite (Google) | $0.10 / $0.40 | **$2.20** | free tier for development |
+| gemini-2.5-flash-lite (Google) | $0.10 / $0.40 | **$2.20** | still on the pricing page, but the API answered 404 "no longer available to new users" for a new key on 19 Nov 2026 |
+| gemini-3.1-flash-lite (Google) | $0.25 / $1.50 | **$5.85** | free tier; worked in the live test, but the API often answered 503/504 for it that day |
 | Claude Haiku 5.5 (Anthropic) | $0.10 / $0.50 | **$2.30** | prompts up to 100k tokens |
 | gpt-5-mini (OpenAI) | $0.25 / $2.00 | **$6.30** | |
-| gemini-3.5-flash-lite (Google) | $0.30 / $2.50 | **$7.70** | default in `.env.example`; free tier |
+| gemini-3.5-flash-lite (Google) | $0.30 / $2.50 | **$7.70** | default in `.env.example`; free tier; used in the [live test](LIVE_TEST.md) |
 | gemini-3.8-flash (Google) | $0.75 / $3.75 | **$17** | price doubles from 1 Jan 2027 |
 | Claude Sonnet 5.5 (Anthropic) | $2 / $10 | **$45** | for complex, high-stakes conversations |
 
 Formula: `18,000 × input_price / 1M + 900 × output_price / 1M` per conversation, × 1,000.
+
+## Measured in the live test
+
+With gemini-3.5-flash-lite on 19 Nov 2026 ([LIVE_TEST.md](LIVE_TEST.md)): **≈ 1,750 input and 45 output tokens per
+question** over 19 questions (about two model calls when a search tool runs), i.e. **≈ $0.0006 per question** and
+≈ $3.8 per 1,000 six-question conversations at list price. The table above deliberately uses the higher
+assumptions (3,000 in / 150 out) as a safe upper bound; longer conversations carry more history and cost more input
+tokens. The free tier costs $0, but Google may use free-tier prompts to improve its products. Use a paid key for
+real customers.
 
 ## Optional paid embeddings (instead of the local model)
 

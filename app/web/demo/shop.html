@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Northwind Audio — headphones, earbuds, speakers (demo site)</title>
+<style>
+  :root { --p:#5b3fc4; --p2:#8c6cf0; --ink:#1b1730; --muted:#625d7a; --bg:#f7f6fb; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif; color:var(--ink); background:var(--bg); line-height:1.5; }
+  .demo { background:#1b1730; color:#e4defa; font-size:13px; text-align:center; padding:8px 12px; }
+  header { background:#fff; border-bottom:1px solid #e6e2f3; }
+  .wrap { max-width:1040px; margin:0 auto; padding:0 20px; }
+  nav { display:flex; align-items:center; justify-content:space-between; height:64px; }
+  .logo { font-weight:800; font-size:20px; color:var(--p); }
+  nav a { color:var(--muted); text-decoration:none; margin-left:22px; font-size:15px; }
+  .hero { background:linear-gradient(135deg,#3a2a8c,var(--p) 55%,var(--p2)); color:#fff; padding:60px 0 70px; }
+  .hero h1 { font-size:40px; line-height:1.15; margin:0 0 12px; max-width:600px; }
+  .hero p { font-size:18px; margin:0 0 22px; max-width:540px; opacity:.92; }
+  .pill { display:inline-block; background:rgba(255,255,255,.18); padding:6px 14px; border-radius:20px; font-size:14px; margin-right:8px; }
+  h2 { font-size:26px; margin:44px 0 18px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:18px; }
+  .card { background:#fff; border-radius:14px; overflow:hidden; box-shadow:0 2px 10px rgba(27,23,48,.07); }
+  .pic { height:140px; display:flex; align-items:center; justify-content:center; font-size:54px; }
+  .a { background:linear-gradient(160deg,#ddd6fe,#a78bfa); } .b { background:linear-gradient(160deg,#fde68a,#f59e0b); }
+  .c { background:linear-gradient(160deg,#a7f3d0,#10b981); } .d { background:linear-gradient(160deg,#fbcfe8,#ec4899); }
+  .card .t { padding:14px 16px 16px; }
+  .card h3 { margin:0 0 4px; font-size:16px; } .card .m { color:var(--muted); font-size:14px; }
+  .card .pr { margin-top:8px; font-weight:700; color:var(--p); font-size:17px; }
+  .facts { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:18px; margin-bottom:56px; }
+  .fact { background:#fff; border-radius:14px; padding:18px; box-shadow:0 2px 10px rgba(27,23,48,.07); }
+  .fact b { color:var(--p); }
+  footer { background:#1b1730; color:#a9a3c4; padding:28px 0; font-size:14px; }
+  @media (max-width:640px) { nav a { display:none; } .hero { padding:40px 0 48px; } .hero h1 { font-size:30px; } h2 { font-size:22px; } }
+</style>
+</head>
+<body>
+<div class="demo">Demo website of a fictional store — the chat assistant in the corner is a portfolio project (AI model + the store's documents and catalog).</div>
+<header><div class="wrap"><nav><span class="logo">Northwind Audio</span>
+  <span><a href="#">Headphones</a><a href="#">Earbuds</a><a href="#">Speakers</a><a href="#">Delivery</a></span></nav></div></header>
+<section class="hero"><div class="wrap">
+  <h1>Sound you can trust, small range on purpose</h1>
+  <p>Headphones, earbuds and speakers we have tested ourselves. 30-day returns, free return shipping in the EU.</p>
+  <span class="pill">2-year warranty</span><span class="pill">Ships to the EU, UK and Ukraine</span>
+</div></section>
+<main class="wrap">
+  <h2>Popular right now</h2>
+  <div class="grid">
+    <div class="card"><div class="pic a">🎧</div><div class="t"><h3>Aria ANC 500</h3><div class="m">Over-ear · noise cancelling · 40 h</div><div class="pr">€179</div></div></div>
+    <div class="card"><div class="pic b">🏃</div><div class="t"><h3>Pulse Run Open</h3><div class="m">Earbuds · IP67 · 10 h</div><div class="pr">€119</div></div></div>
+    <div class="card"><div class="pic c">🔊</div><div class="t"><h3>Boom Go</h3><div class="m">Portable speaker · IP67 · 12 h</div><div class="pr">€69</div></div></div>
+    <div class="card"><div class="pic d">🎵</div><div class="t"><h3>Nordwave Buds</h3><div class="m">Budget earbuds · 6 h</div><div class="pr">€49</div></div></div>
+  </div>
+  <h2>Good to know</h2>
+  <div class="facts">
+    <div class="fact"><b>Delivery</b><p>EU, UK and Ukraine. Ask the assistant for times and prices to your country.</p></div>
+    <div class="fact"><b>Returns</b><p>30 days, complete and undamaged. In-ear models: only with sealed ear tips.</p></div>
+    <div class="fact"><b>Not sure what to pick?</b><p>Tell the assistant what you need — running, flights, calls — and your budget.</p></div>
+  </div>
+</main>
+<footer><div class="wrap">Northwind Audio · fictional company for a portfolio demo</div></footer>
+<script src="/widget.js" data-color="#5b3fc4" defer></script>
+</body>
+</html>

@@ -24,6 +24,8 @@ class Settings:
     llm_provider: str = "demo"  # demo (offline, scripted) | gemini
     gemini_api_key: str = ""
     gemini_model: str = "gemini-3.5-flash-lite"
+    gemini_fallback_model: str = ""  # tried after the first failed attempt (503, timeout); empty = same model
+    gemini_timeout_s: float = 30.0  # per request
     # USD per 1M tokens, for the admin cost report (defaults: Gemini 3.5 Flash-Lite list price, Nov 2026)
     price_input_per_m: float = 0.30
     price_output_per_m: float = 2.50
@@ -34,15 +36,20 @@ class Settings:
     rate_limit_per_hour: int = 30  # protects the API budget from one noisy user
     rag_top_k: int = 4
     rag_min_score: float = 0.30  # hybrid score; off-topic questions score < 0.26 on the demo knowledge bases
+    # --- website widget (python -m app.web)
+    allowed_origins: tuple[str, ...] = ()  # sites allowed to embed the widget, e.g. https://www.example.com
+    admin_api_key: str = ""  # enables /api/admin/* (sent as X-Admin-Key); empty = admin API off
+    ip_rate_limit_per_hour: int = 120  # per client IP, on top of the per-visitor limit (visitors can rotate ids)
 
     def is_admin(self, user_id: int) -> bool:
         return user_id in self.admin_ids
 
 
-def load_settings(env_file: str | Path = ".env") -> Settings:
+def load_settings(env_file: str | Path = ".env", require_bot_token: bool = True) -> Settings:
+    """`require_bot_token=False` is for the website widget, which does not need Telegram."""
     env = {**_read_env_file(Path(env_file)), **os.environ}
     token = env.get("BOT_TOKEN", "").strip()
-    if not token:
+    if not token and require_bot_token:
         raise SystemExit("BOT_TOKEN is not set (see .env.example)")
     provider = env.get("LLM_PROVIDER", "demo").strip().lower()
     if provider not in {"demo", "gemini"}:
@@ -59,10 +66,17 @@ def load_settings(env_file: str | Path = ".env") -> Settings:
         llm_provider=provider,
         gemini_api_key=env.get("GEMINI_API_KEY", ""),
         gemini_model=env.get("GEMINI_MODEL") or defaults.gemini_model,
+        gemini_fallback_model=env.get("GEMINI_FALLBACK_MODEL", "").strip(),
+        gemini_timeout_s=float(env.get("GEMINI_TIMEOUT_S") or defaults.gemini_timeout_s),
         price_input_per_m=float(env.get("PRICE_INPUT_PER_M") or defaults.price_input_per_m),
         price_output_per_m=float(env.get("PRICE_OUTPUT_PER_M") or defaults.price_output_per_m),
         admin_ids=frozenset(int(x) for x in env.get("ADMIN_IDS", "").replace(";", ",").split(",") if x.strip()),
         database_url=env.get("DATABASE_URL") or defaults.database_url,
         data_dir=Path(env.get("DATA_DIR") or defaults.data_dir),
         rate_limit_per_hour=int(env.get("RATE_LIMIT_PER_HOUR") or defaults.rate_limit_per_hour),
+        allowed_origins=tuple(
+            o.strip().rstrip("/") for o in env.get("WIDGET_ALLOWED_ORIGINS", "").replace(";", ",").split(",") if o.strip()
+        ),
+        admin_api_key=env.get("ADMIN_API_KEY", "").strip(),
+        ip_rate_limit_per_hour=int(env.get("IP_RATE_LIMIT_PER_HOUR") or defaults.ip_rate_limit_per_hour),
     )

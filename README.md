@@ -1,6 +1,7 @@
-# Telegram AI Assistant: RAG + Function Calling
+# AI Assistant for Telegram and Websites: RAG + Function Calling
 
-One assistant engine, two ready-made businesses:
+One assistant engine, two channels (a Telegram bot and an embeddable **website chat widget**, see
+[docs/WIDGET.md](docs/WIDGET.md)), two ready-made businesses:
 
 - **Northwind Homes** — a real estate agency assistant: answers questions about fees, documents and viewings from the
   agency's own documents, finds flats from a free-text request ("2 bedrooms in Chiado up to €2,400, I have a dog"),
@@ -12,7 +13,7 @@ Switching business = `VERTICAL=realty` or `VERTICAL=shop`. A new business is a f
 a catalog CSV, a short persona and its tools.
 
 Python · aiogram 3 · Gemini API (google-genai) · local multilingual embeddings (fastembed) · BM25 · SQLAlchemy 2
-(SQLite / PostgreSQL) · 58 automated tests
+(SQLite / PostgreSQL) · 94 automated tests
 
 | Free-text request → listing card | Answers from documents, with sources | Lead with the conversation for the agent |
 |---|---|---|
@@ -27,7 +28,9 @@ More: [all screenshots](docs/screens/) · [what it costs to run](docs/COSTS.md)
 > **About the screenshots.** They come from a scripted run of the real bot code (`scripts/demo_screens.py`) in
 > **offline demo mode**: the assistant's wording is pre-written for the sample questions, everything else —
 > retrieval, cited sources, SQL search, cards, buttons, leads, the admin report — is the bot's actual output.
-> With `LLM_PROVIDER=gemini` the same pipeline gets its words from a live model. Names and data are fictional.
+> With `LLM_PROVIDER=gemini` the same pipeline gets its words from a live model: it was run against the Gemini API
+> on 19 Nov 2026 — see [docs/LIVE_TEST.md](docs/LIVE_TEST.md) for what worked and what did not. Names and data are
+> fictional.
 
 ## How it works
 
@@ -81,8 +84,16 @@ python -m app
 - **Offline demo** (default, `LLM_PROVIDER=demo`): no API key; the sample questions from `/start` get pre-written
   answers on top of real retrieval and search; other questions get an honest "demo mode" reply with the closest
   passage from the documents.
-- **Live model**: `LLM_PROVIDER=gemini`, `GEMINI_API_KEY=...` (Google AI Studio has a free tier for development),
-  optionally `GEMINI_MODEL`.
+- **Live model**: `LLM_PROVIDER=gemini`, `GEMINI_API_KEY=...` (Google AI Studio has a free tier for development;
+  Google may use free-tier prompts to improve its products, so use a paid key for real customers), optionally
+  `GEMINI_MODEL` (default `gemini-3.5-flash-lite`). Run live against the Gemini API on 19 Nov 2026
+  ([results](docs/LIVE_TEST.md)); not yet run in the real Telegram app with a live model.
+  - The API answered 503/504 "high demand" often that day, so each request has a timeout (`GEMINI_TIMEOUT_S`,
+    default 30) and is retried; `GEMINI_FALLBACK_MODEL` (e.g. `gemini-3.1-flash-lite`) takes over after the first
+    failed attempt.
+  - `python scripts/live_check.py both` repeats the live test without Telegram (needs only the API key).
+- **Website widget**: `python -m app.web` serves the API, `widget.js` and a demo site; embed it with one
+  `<script src=".../widget.js">` tag. Same engine and database as the bot. See [docs/WIDGET.md](docs/WIDGET.md).
 - The first start downloads the embedding model (~220 MB) into `data/models`.
 - PostgreSQL: set `DATABASE_URL=postgresql+asyncpg://...`; Docker: `docker compose up -d --build`.
 
@@ -96,7 +107,7 @@ python -m app
 
 ```bash
 pip install -r requirements-dev.txt
-pytest -q                                              # 58 tests, SQLite
+pytest -q                                              # 94 tests, SQLite
 TEST_DATABASE_URL=postgresql+asyncpg://... pytest -q   # same suite on PostgreSQL
 ```
 
@@ -105,9 +116,10 @@ TEST_DATABASE_URL=postgresql+asyncpg://... pytest -q   # same suite on PostgreSQ
 - **Tools:** SQL filters, accent-insensitive districts, over-budget fallback, semantic re-ranking, out-of-stock
   handling, argument validation.
 - **Agent loop:** tool call → result → cited answer, invalid arguments reported to the model, hand-off, bounded loop,
-  provider failure.
+  provider failure, JSON the model made up is stripped, a promised hand-off always gets the phone button.
 - **Gemini adapter:** request and response conversion against the real SDK types, thought signatures, hidden
-  thinking text, retries on 429/503, no retry on 400 (no network calls).
+  thinking text, retries on 429/5xx, timeouts and network errors, fallback model, no retry on 400 (no network calls).
+  The live API run is separate: `scripts/live_check.py`.
 - **Telegram end-to-end** through an in-process fake Bot API: sample questions with sources, search → card → booking
   → lead to staff, typed-phone validation and cancel, model hand-off, Ukrainian request, demo-mode honesty, history
   and token logging, rate limit, provider outage, admin report and CSV export.

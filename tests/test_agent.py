@@ -1,6 +1,7 @@
 """The agent loop with a programmable fake model: tool calls, citations, guards, failures."""
 from __future__ import annotations
 
+from app.agent import strip_json
 from app.llm.base import LLMError, LLMReply, ToolCall, Usage
 
 
@@ -88,3 +89,51 @@ async def test_provider_failure_is_reported_not_raised(stack):
     async with sm() as session:
         result = await agent.answer(session, [], "Any studios?")
     assert result.failed is True and result.handoff is True
+
+
+def test_strip_json_removes_echoed_tool_data_and_keeps_prose():
+    raw = 'I found a flat in Chiado [1].\n\n```json\n{"cards": [{"id": "NH-103", "price_eur": 2300}]}\n```\n\nShall I book it?'
+    assert strip_json(raw) == "I found a flat in Chiado [1].\n\nShall I book it?"
+    assert strip_json('{\n  "cards": [{"id": "NH-103"}]\n}') == ""
+    plain = "Plain answer with {braces} and a price of 5 EUR."
+    assert strip_json(plain) == plain
+    assert strip_json('Unfinished {"cards": [') == 'Unfinished {"cards": ['
+
+
+async def test_agent_hides_json_the_model_made_up(stack):
+    model = FakeModel(LLMReply(text='Here you go.\n{"cards": [{"id": "NH-103", "title": "Flat"}]}'))
+    _, sm, agent = await stack("realty", model)
+    async with sm() as session:
+        result = await agent.answer(session, [], "Show me something")
+    assert result.text == "Here you go."
+
+
+
+async def test_promise_of_a_colleague_without_the_tool_still_hands_off(stack):
+    model = FakeModel(LLMReply(text="I am not sure about move-out cleaning, so let me connect you with a colleague."))
+    _, sm, agent = await stack("realty", model)
+    async with sm() as session:
+        result = await agent.answer(session, [], "Do you offer cleaning after move-out?")
+    assert result.handoff is True and result.tool_log == []
+
+
+async def test_ordinary_answers_do_not_trigger_a_hand_off(stack):
+    for text in (
+        "Tenants pay no agency fee; the landlord pays our commission [1].",
+        "I can only help with flats in central Lisbon.",
+        "Our agents show flats every weekday from 9:00 to 18:00.",
+        "Ось повнорозмірні навушники до 100 євро: Aria Kids і Basso Gamer.",
+    ):
+        model = FakeModel(LLMReply(text=text))
+        _, sm, agent = await stack("realty", model)
+        async with sm() as session:
+            result = await agent.answer(session, [], "hello")
+        assert result.handoff is False, text
+
+
+async def test_ukrainian_promise_of_a_colleague_hands_off(stack):
+    model = FakeModel(LLMReply(text="Я не впевнена, тому з’єдную вас із колегою, який допоможе."))
+    _, sm, agent = await stack("realty", model)
+    async with sm() as session:
+        result = await agent.answer(session, [], "Чи є у вас клінінг після виїзду?")
+    assert result.handoff is True

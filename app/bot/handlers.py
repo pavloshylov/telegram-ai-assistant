@@ -5,7 +5,6 @@ import csv
 import io
 import logging
 import re
-from datetime import datetime, timedelta, timezone
 from html import escape
 from typing import Any, Awaitable, Callable
 
@@ -25,19 +24,18 @@ from aiogram.types import (
     ReplyKeyboardMarkup,
     TelegramObject,
 )
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.agent import Agent, AgentResult
 from app.bot import texts
+from app.chat import PHONE_RE, collect_stats, converse, create_lead, recent_messages
 from app.config import Settings
-from app.db import Lead, Message, User, utcnow
-from app.llm.base import ChatMessage
+from app.db import Lead, User, utcnow
 from app.verticals.base import Card
 
 log = logging.getLogger(__name__)
 router = Router(name="assistant")
-PHONE_RE = re.compile(r"^\+?[\d\s\-()]{7,20}$")
 
 
 class LeadFlow(StatesGroup):
@@ -154,30 +152,24 @@ async def admin(message: TgMessage, session: AsyncSession, settings: Settings, a
     if not settings.is_admin(user.id):
         await ask(message, session, settings, agent, user, message.text or "")
         return
-    count = lambda q: session.scalar(q)  # noqa: E731
-    questions = await count(select(func.count()).select_from(Message).where(Message.role == "user"))
-    assistant_meta = list(await session.scalars(select(Message.meta).where(Message.role == "assistant")))
-    tokens_in = await count(select(func.coalesce(func.sum(Message.input_tokens), 0)))
-    tokens_out = await count(select(func.coalesce(func.sum(Message.output_tokens), 0)))
-    kinds = (await session.execute(select(Lead.kind, func.count()).group_by(Lead.kind))).all()
-    cost = tokens_in / 1e6 * settings.price_input_per_m + tokens_out / 1e6 * settings.price_output_per_m
+    stats = await collect_stats(session, settings)
     await message.answer(
         texts.ADMIN_STATS.format(
             company=escape(agent.vertical.company),
             provider=f"{agent.provider.name}" + (f" ({settings.gemini_model})" if agent.provider.name == "gemini" else ""),
-            users=await count(select(func.count()).select_from(User)),
-            conversations=await count(select(func.count(func.distinct(Message.user_id)))),
-            questions=questions,
-            with_sources=sum(1 for m in assistant_meta if m.get("sources")),
-            with_cards=sum(1 for m in assistant_meta if m.get("cards")),
-            handoffs=sum(1 for m in assistant_meta if m.get("handoff")),
-            leads=sum(n for _, n in kinds),
-            lead_kinds=", ".join(f"{k}: {n}" for k, n in kinds) or "none yet",
+            users=stats.users,
+            conversations=stats.conversations,
+            questions=stats.questions,
+            with_sources=stats.with_sources,
+            with_cards=stats.with_cards,
+            handoffs=stats.handoffs,
+            leads=stats.leads,
+            lead_kinds=", ".join(f"{k}: {n}" for k, n in stats.lead_kinds.items()) or "none yet",
             estimated=" (estimated, demo mode)" if agent.provider.name == "demo" else "",
-            tokens_in=tokens_in,
-            tokens_out=tokens_out,
-            cost=cost,
-            per_question=cost / questions if questions else 0,
+            tokens_in=stats.tokens_in,
+            tokens_out=stats.tokens_out,
+            cost=stats.cost,
+            per_question=stats.per_question,
             p_in=settings.price_input_per_m,
             p_out=settings.price_output_per_m,
         ),
@@ -244,20 +236,18 @@ async def got_phone(
         return
     data = await state.get_data()
     await state.clear()
-    lead = Lead(user_id=user.id, kind=data["kind"], item_id=data.get("item_id"), phone=phone,
-                name=(message.contact.first_name if message.contact else user.first_name) or "", note=data.get("note", ""))
-    session.add(lead)
-    await session.flush()
+    lead = await create_lead(
+        session, user.id, data["kind"], data.get("item_id"), phone,
+        (message.contact.first_name if message.contact else user.first_name) or "", data.get("note", ""),
+    )
     await message.answer(texts.LEAD_THANKS.format(phone=escape(phone)), reply_markup=main_keyboard(agent))
     await notify_admins(bot, session, settings, lead, user)
 
 
 async def notify_admins(bot: Bot, session: AsyncSession, settings: Settings, lead: Lead, user: User) -> None:
-    recent = list(await session.scalars(
-        select(Message).where(Message.user_id == user.id).order_by(Message.id.desc()).limit(6)
-    ))
+    recent = await recent_messages(session, user.id)
     transcript = "\n".join(
-        f"{'👤' if m.role == 'user' else '🤖'} {escape(m.text[:200])}" for m in reversed(recent)
+        f"{'👤' if m.role == 'user' else '🤖'} {escape(m.text[:200])}" for m in recent
     ) or "—"
     who = f"{escape(user.first_name)} (@{escape(user.username)})" if user.username else escape(user.first_name)
     text = texts.LEAD_NOTIFY.format(
@@ -304,30 +294,16 @@ async def ask(
     target: TgMessage, session: AsyncSession, settings: Settings, agent: Agent, user: User, question: str,
     state: FSMContext | None = None,
 ) -> None:
-    hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
-    recent = await session.scalar(
-        select(func.count()).select_from(Message).where(
-            Message.user_id == user.id, Message.role == "user", Message.created_at >= hour_ago
-        )
-    )
-    if recent >= settings.rate_limit_per_hour:
+    await target.bot.send_chat_action(target.chat.id, ChatAction.TYPING)
+    turn = await converse(session, settings, agent, user.id, question)
+    if turn.status == "rate_limited":
         await target.answer(texts.RATE_LIMITED)
         return
-    await target.bot.send_chat_action(target.chat.id, ChatAction.TYPING)
-    history = await load_history(session, user.id, settings.history_messages)
-    session.add(Message(user_id=user.id, role="user", text=question[:4000]))
-    result = await agent.answer(session, history, question)
-    if result.failed:
-        session.add(Message(user_id=user.id, role="assistant", text=texts.THINKING_FAILED, meta={"handoff": True, "failed": True}))
+    if turn.status == "failed":
         if state is not None:
             await start_lead(target, state, "human", None, texts.THINKING_FAILED, note="assistant failed to answer")
         return
-    session.add(Message(
-        user_id=user.id, role="assistant", text=result.text,
-        meta={"cards": [c.item_id for c in result.cards], "sources": [h.chunk.title for h in result.sources],
-              "handoff": result.handoff, "tools": [t["tool"] for t in result.tool_log]},
-        input_tokens=result.usage.input_tokens, output_tokens=result.usage.output_tokens,
-    ))
+    result = turn.result
     handoff = result.handoff and state is not None
     if handoff:  # one message: the model's words + the phone button (no duplicate prompt)
         await state.set_state(LeadFlow.phone)
@@ -339,22 +315,6 @@ async def ask(
         await target.answer(text, reply_markup=phone_keyboard() if handoff else None)
     for card in result.cards:
         await target.answer(card_text(card), reply_markup=card_markup(card))
-
-
-async def load_history(session: AsyncSession, user_id: int, limit: int) -> list[ChatMessage]:
-    """Recent turns for the model; shown cards are noted so follow-ups like 'the second one' work."""
-    rows = list(await session.scalars(
-        select(Message).where(Message.user_id == user_id).order_by(Message.id.desc()).limit(limit)
-    ))
-    history = []
-    for row in reversed(rows):
-        text = row.text
-        if row.role == "assistant" and row.meta.get("cards"):
-            text += f"\n(Cards shown to the user: {', '.join(row.meta['cards'])})"
-        history.append(ChatMessage(role="user" if row.role == "user" else "assistant", text=text))
-    while history and history[0].role != "user":  # providers expect the history to start with a user turn
-        history.pop(0)
-    return history
 
 
 @router.error()

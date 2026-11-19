@@ -22,7 +22,12 @@ def make_provider(settings: Settings, vertical: Vertical) -> LLMProvider:
     if settings.llm_provider == "gemini":
         from app.llm.gemini import GeminiProvider
 
-        return GeminiProvider(api_key=settings.gemini_api_key, model=settings.gemini_model)
+        return GeminiProvider(
+            api_key=settings.gemini_api_key,
+            model=settings.gemini_model,
+            fallback_model=settings.gemini_fallback_model,
+            timeout_s=settings.gemini_timeout_s,
+        )
     from app.llm.scripted import ScriptedProvider
 
     rules = importlib.import_module(f"app.verticals.{vertical.key}.demo").RULES

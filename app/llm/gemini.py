@@ -2,7 +2,9 @@
 
 - Function calling with JSON-Schema tool declarations; automatic function calling is off, the agent runs tools.
 - Thought signatures returned with function calls are kept and sent back, as Gemini 3 models require.
-- Retries with exponential backoff on rate limits (429) and server errors (5xx).
+- Retries with exponential backoff on rate limits (429), server errors (5xx), timeouts and network errors.
+- Each request has a timeout (the live test saw 503 "high demand" answers that took ~100 s to arrive).
+- Optional fallback model: after the first failed attempt the remaining attempts go to `fallback_model`.
 """
 from __future__ import annotations
 
@@ -10,6 +12,7 @@ import asyncio
 import logging
 from typing import Any
 
+import httpx
 from google import genai
 from google.genai import errors, types
 
@@ -30,12 +33,16 @@ class GeminiProvider:
         max_output_tokens: int = 800,
         retries: int = 3,
         client: Any | None = None,
+        timeout_s: float = 30.0,
+        fallback_model: str = "",
     ):
         self.model = model
+        self.fallback_model = fallback_model if fallback_model and fallback_model != model else ""
+        self.last_model = model
         self.temperature = temperature
         self.max_output_tokens = max_output_tokens
         self.retries = retries
-        self.client = client or genai.Client(api_key=api_key)
+        self.client = client or genai.Client(api_key=api_key, http_options=types.HttpOptions(timeout=int(timeout_s * 1000)))
 
     async def complete(self, system: str, messages: list[ChatMessage], tools: list[ToolSpec]) -> LLMReply:
         config = types.GenerateContentConfig(
@@ -47,18 +54,23 @@ class GeminiProvider:
         )
         contents = [to_content(m) for m in messages]
         for attempt in range(self.retries + 1):
+            model = self.fallback_model if attempt and self.fallback_model else self.model
             try:
-                response = await self.client.aio.models.generate_content(
-                    model=self.model, contents=contents, config=config
-                )
+                response = await self.client.aio.models.generate_content(model=model, contents=contents, config=config)
+                self.last_model = model
                 return from_response(response)
             except errors.APIError as exc:
-                if exc.code in RETRY_CODES and attempt < self.retries:
-                    delay = 2**attempt
-                    log.warning("Gemini %s, retry %s in %ss", exc.code, attempt + 1, delay)
-                    await asyncio.sleep(delay)
-                    continue
-                raise LLMError(f"Gemini API error {exc.code}") from exc
+                if exc.code not in RETRY_CODES:
+                    raise LLMError(f"Gemini API error {exc.code}") from exc
+                reason, error = str(exc.code), LLMError(f"Gemini API error {exc.code}")
+                cause = exc
+            except (TimeoutError, httpx.TransportError) as exc:  # the SDK raises these unwrapped
+                reason, error, cause = type(exc).__name__, LLMError(f"Gemini request failed: {type(exc).__name__}"), exc
+            if attempt == self.retries:
+                raise error from cause
+            delay = 2**attempt
+            log.warning("Gemini %s on %s, retry %s in %ss", reason, model, attempt + 1, delay)
+            await asyncio.sleep(delay)
         raise LLMError("Gemini: retries exhausted")  # pragma: no cover
 
 

@@ -1,6 +1,7 @@
 """Gemini adapter: request/response conversion and retries, against the real SDK types (no network)."""
 from __future__ import annotations
 
+import httpx
 import pytest
 from google.genai import errors, types
 
@@ -106,3 +107,58 @@ async def test_client_error_is_not_retried():
     with pytest.raises(LLMError, match="400"):
         await p.complete("s", [ChatMessage(role="user", text="hi")], [])
     assert len(p.client.models.requests) == 1
+
+
+async def test_timeout_is_retried_then_succeeds(monkeypatch):
+    async def no_sleep(seconds):
+        pass
+
+    monkeypatch.setattr(gemini.asyncio, "sleep", no_sleep)
+    p = provider([TimeoutError(), response(types.Part(text="late but fine"))])
+    reply = await p.complete("s", [ChatMessage(role="user", text="hi")], [])
+    assert reply.text == "late but fine" and len(p.client.models.requests) == 2
+
+
+async def test_network_error_after_all_retries_becomes_llm_error(monkeypatch):
+    async def no_sleep(seconds):
+        pass
+
+    monkeypatch.setattr(gemini.asyncio, "sleep", no_sleep)
+    p = provider([httpx.ConnectError("down")] * 4)
+    with pytest.raises(LLMError, match="ConnectError"):
+        await p.complete("s", [ChatMessage(role="user", text="hi")], [])
+    assert len(p.client.models.requests) == 4
+
+
+async def test_fallback_model_takes_over_after_first_failure(monkeypatch):
+    async def no_sleep(seconds):
+        pass
+
+    monkeypatch.setattr(gemini.asyncio, "sleep", no_sleep)
+    p = GeminiProvider(api_key="test", model="main", fallback_model="backup",
+                       client=FakeClient([errors.APIError(503, {"error": {"message": "high demand"}}),
+                                          response(types.Part(text="from backup"))]))
+    reply = await p.complete("s", [ChatMessage(role="user", text="hi")], [])
+    assert reply.text == "from backup"
+    assert [r["model"] for r in p.client.models.requests] == ["main", "backup"]
+    assert p.last_model == "backup"
+
+
+async def test_no_fallback_keeps_the_main_model(monkeypatch):
+    async def no_sleep(seconds):
+        pass
+
+    monkeypatch.setattr(gemini.asyncio, "sleep", no_sleep)
+    p = provider([errors.APIError(503, {"error": {"message": "high demand"}}), response(types.Part(text="ok"))])
+    await p.complete("s", [ChatMessage(role="user", text="hi")], [])
+    assert [r["model"] for r in p.client.models.requests] == ["gemini-test", "gemini-test"]
+
+
+def test_fallback_and_timeout_come_from_env(tmp_path):
+    from app.config import load_settings
+
+    env = tmp_path / ".env"
+    env.write_text("BOT_TOKEN=1:x\nLLM_PROVIDER=gemini\nGEMINI_API_KEY=k\nGEMINI_FALLBACK_MODEL=backup\n"
+                   "GEMINI_TIMEOUT_S=12\n", encoding="utf-8")
+    s = load_settings(env)
+    assert s.gemini_fallback_model == "backup" and s.gemini_timeout_s == 12.0

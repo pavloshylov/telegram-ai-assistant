@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Northwind Homes — flats in central Lisbon (demo site)</title>
+<style>
+  :root { --g:#2e7d5b; --g2:#4fb38a; --ink:#16241e; --muted:#5a6b63; --bg:#f6f8f7; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif; color:var(--ink); background:var(--bg); line-height:1.5; }
+  .demo { background:#16241e; color:#dfeee7; font-size:13px; text-align:center; padding:8px 12px; }
+  header { background:#fff; border-bottom:1px solid #e1e8e4; }
+  .wrap { max-width:1040px; margin:0 auto; padding:0 20px; }
+  nav { display:flex; align-items:center; justify-content:space-between; height:64px; }
+  .logo { font-weight:800; font-size:20px; color:var(--g); letter-spacing:.2px; }
+  nav a { color:var(--muted); text-decoration:none; margin-left:22px; font-size:15px; }
+  .hero { background:linear-gradient(135deg,#1f5c43,var(--g) 55%,var(--g2)); color:#fff; padding:64px 0 72px; }
+  .hero h1 { font-size:40px; line-height:1.15; margin:0 0 12px; max-width:620px; }
+  .hero p { font-size:18px; margin:0 0 24px; max-width:560px; opacity:.92; }
+  .pill { display:inline-block; background:rgba(255,255,255,.18); padding:6px 14px; border-radius:20px; font-size:14px; margin-right:8px; }
+  h2 { font-size:26px; margin:44px 0 18px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:18px; }
+  .card { background:#fff; border-radius:14px; overflow:hidden; box-shadow:0 2px 10px rgba(22,36,30,.07); }
+  .pic { height:150px; }
+  .p1 { background:linear-gradient(160deg,#d8c3a5,#b08968); } .p2 { background:linear-gradient(160deg,#a8dadc,#457b9d); }
+  .p3 { background:linear-gradient(160deg,#cdb4db,#8d6ba8); } .p4 { background:linear-gradient(160deg,#b7e4c7,#40916c); }
+  .card .b { padding:14px 16px 16px; }
+  .card h3 { margin:0 0 4px; font-size:16px; } .card .m { color:var(--muted); font-size:14px; }
+  .card .pr { margin-top:8px; font-weight:700; color:var(--g); font-size:17px; }
+  .steps { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:18px; margin-bottom:56px; }
+  .step { background:#fff; border-radius:14px; padding:18px; box-shadow:0 2px 10px rgba(22,36,30,.07); }
+  .step b { color:var(--g); font-size:22px; }
+  footer { background:#16241e; color:#9fb4aa; padding:28px 0; font-size:14px; }
+  @media (max-width:640px) { nav a { display:none; } .hero { padding:40px 0 48px; } .hero h1 { font-size:30px; } h2 { font-size:22px; } }
+</style>
+</head>
+<body>
+<div class="demo">Demo website of a fictional agency — the chat assistant in the corner is a portfolio project (AI model + the agency's documents).</div>
+<header><div class="wrap"><nav><span class="logo">Northwind Homes</span>
+  <span><a href="#">Rent</a><a href="#">Buy</a><a href="#">Viewings</a><a href="#">Contact</a></span></nav></div></header>
+<section class="hero"><div class="wrap">
+  <h1>Find your flat in central Lisbon</h1>
+  <p>Rentals and sales in Alfama, Baixa, Chiado, Belém and beyond. Tenants pay no agency fee.</p>
+  <span class="pill">Viewing confirmed within 2 working hours</span><span class="pill">Pets-friendly options</span>
+</div></section>
+<main class="wrap">
+  <h2>Featured flats</h2>
+  <div class="grid">
+    <div class="card"><div class="pic p1"></div><div class="b"><h3>Elegant 2-bedroom with balcony</h3><div class="m">Chiado · 88 m² · pets allowed</div><div class="pr">€2,300 / month</div></div></div>
+    <div class="card"><div class="pic p2"></div><div class="b"><h3>Bright 1-bedroom with river view</h3><div class="m">Alfama · 52 m² · furnished</div><div class="pr">€1,350 / month</div></div></div>
+    <div class="card"><div class="pic p3"></div><div class="b"><h3>New-build 2-bedroom with pool</h3><div class="m">Parque das Nações · 95 m² · parking</div><div class="pr">€2,100 / month</div></div></div>
+    <div class="card"><div class="pic p4"></div><div class="b"><h3>Renovated 1-bedroom for sale</h3><div class="m">Alfama · 55 m² · renovated 2024</div><div class="pr">€365,000</div></div></div>
+  </div>
+  <h2>How it works</h2>
+  <div class="steps">
+    <div class="step"><b>1</b><p>Tell us what you need — or ask our assistant in your own words.</p></div>
+    <div class="step"><b>2</b><p>Book a viewing: leave your phone number and an agent confirms the time.</p></div>
+    <div class="step"><b>3</b><p>Move in. The landlord pays our commission, not you.</p></div>
+  </div>
+</main>
+<footer><div class="wrap">Northwind Homes · fictional company for a portfolio demo · Lisbon</div></footer>
+<script src="/widget.js" data-color="#2e7d5b" defer></script>
+</body>
+</html>
