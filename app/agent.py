@@ -57,6 +57,7 @@ class Agent:
         max_steps: int = 4,
         top_k: int = 4,
         min_score: float = 0.30,
+        channel_note: str = "",
     ):
         self.provider = provider
         self.vertical = vertical
@@ -65,11 +66,14 @@ class Agent:
         self.max_steps = max_steps
         self.top_k = top_k
         self.min_score = min_score
+        self.channel_note = channel_note  # extra rules for one channel (e.g. WhatsApp already knows the phone number)
 
     def system_prompt(self, hits: list[Hit]) -> str:
         v = self.vertical
         head = f"You are {v.assistant_name}, the assistant of {v.company}. {v.persona}"
         rules = RULES.format(domain=v.domain, today=date.today().isoformat())
+        if self.channel_note:
+            rules += f"\n{self.channel_note}"
         return f"{head}\n\n{rules}\n\nContext:\n{context_block(hits)}"
 
     async def answer(self, session, history: list[ChatMessage], user_text: str) -> AgentResult:

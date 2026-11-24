@@ -62,6 +62,29 @@ class Lead(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
+class WhatsAppEvent(Base):
+    """Inbound WhatsApp message ids already taken: Meta retries webhooks, so a repeat must not be answered twice."""
+
+    __tablename__ = "wa_events"
+
+    id: Mapped[str] = mapped_column(String(128), primary_key=True)  # wamid of the inbound message
+    status: Mapped[str] = mapped_column(String(24), default="received")  # received | replied | window_closed | ...
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class WhatsAppOutbound(Base):
+    """Every message we sent and what Meta later said about it (sent/delivered/read/failed): delivery is not silent."""
+
+    __tablename__ = "wa_outbound"
+
+    id: Mapped[str] = mapped_column(String(128), primary_key=True)  # wamid returned by the messages endpoint
+    user_id: Mapped[int] = mapped_column(BigInteger, index=True)
+    status: Mapped[str] = mapped_column(String(16), default="accepted")
+    error_code: Mapped[int | None] = mapped_column(Integer)
+    detail: Mapped[str] = mapped_column(Text, default="")
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 class Listing(Base):
     __tablename__ = "listings"
 

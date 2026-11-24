@@ -1,7 +1,8 @@
-# AI Assistant for Telegram and Websites: RAG + Function Calling
+# AI Assistant for Telegram, WhatsApp and Websites: RAG + Function Calling
 
-One assistant engine, two channels (a Telegram bot and an embeddable **website chat widget**, see
-[docs/WIDGET.md](docs/WIDGET.md)), two ready-made businesses:
+One assistant engine, three channels (a Telegram bot, a **WhatsApp** channel on the Cloud API, see
+[docs/WHATSAPP.md](docs/WHATSAPP.md), and an embeddable **website chat widget**, see [docs/WIDGET.md](docs/WIDGET.md)),
+two ready-made businesses:
 
 - **Northwind Homes** — a real estate agency assistant: answers questions about fees, documents and viewings from the
   agency's own documents, finds flats from a free-text request ("2 bedrooms in Chiado up to €2,400, I have a dog"),
@@ -13,7 +14,7 @@ Switching business = `VERTICAL=realty` or `VERTICAL=shop`. A new business is a f
 a catalog CSV, a short persona and its tools.
 
 Python · aiogram 3 · Gemini API (google-genai) · local multilingual embeddings (fastembed) · BM25 · SQLAlchemy 2
-(SQLite / PostgreSQL) · 94 automated tests
+(SQLite / PostgreSQL) · FastAPI · WhatsApp Cloud API · 128 automated tests
 
 | Free-text request → listing card | Answers from documents, with sources | Lead with the conversation for the agent |
 |---|---|---|
@@ -22,6 +23,12 @@ Python · aiogram 3 · Gemini API (google-genai) · local multilingual embedding
 | Needs → filters + semantic ranking | Delivery and returns from store rules | Honest about limits, hands off to a person |
 |---|---|---|
 | ![](docs/screens/shop_02_search.png) | ![](docs/screens/shop_03_rag.png) | ![](docs/screens/shop_06_handoff.png) |
+
+**WhatsApp** (Meta test number, real phone, live model; numbers and names blurred):
+
+| Search → card with buttons | Answer from documents, no citation clutter | Lead and hand-off alert for staff |
+|---|---|---|
+| ![](docs/screens/whatsapp_02_search.png) | ![](docs/screens/whatsapp_03_rag_fee_docs.png) | ![](docs/screens/telegram_alert_viewing_lead.png) |
 
 More: [all screenshots](docs/screens/) · [what it costs to run](docs/COSTS.md)
 
@@ -94,6 +101,10 @@ python -m app
   - `python scripts/live_check.py both` repeats the live test without Telegram (needs only the API key).
 - **Website widget**: `python -m app.web` serves the API, `widget.js` and a demo site; embed it with one
   `<script src=".../widget.js">` tag. Same engine and database as the bot. See [docs/WIDGET.md](docs/WIDGET.md).
+- **WhatsApp**: `python -m app.whatsapp` serves Meta's webhook (needs a public HTTPS URL, e.g. a tunnel while testing).
+  Setup on Meta's test number, what differs from Telegram and what production would need: [docs/WHATSAPP.md](docs/WHATSAPP.md).
+  Tested against a fake Graph API and live on Meta's **test number** (demo data, Gemini free tier; not a production
+  deployment: no verified business, no approved templates): [docs/LIVE_TEST_WHATSAPP.md](docs/LIVE_TEST_WHATSAPP.md).
 - The first start downloads the embedding model (~220 MB) into `data/models`.
 - PostgreSQL: set `DATABASE_URL=postgresql+asyncpg://...`; Docker: `docker compose up -d --build`.
 
@@ -107,7 +118,7 @@ python -m app
 
 ```bash
 pip install -r requirements-dev.txt
-pytest -q                                              # 94 tests, SQLite
+pytest -q                                              # 128 tests, SQLite
 TEST_DATABASE_URL=postgresql+asyncpg://... pytest -q   # same suite on PostgreSQL
 ```
 
@@ -123,6 +134,10 @@ TEST_DATABASE_URL=postgresql+asyncpg://... pytest -q   # same suite on PostgreSQ
 - **Telegram end-to-end** through an in-process fake Bot API: sample questions with sources, search → card → booking
   → lead to staff, typed-phone validation and cancel, model hand-off, Ukrainian request, demo-mode honesty, history
   and token logging, rate limit, provider outage, admin report and CSV export.
+- **WhatsApp end-to-end** through an in-process fake Graph API that enforces Meta's documented limits (text 4096, 3 reply
+  buttons, title 20, list 10 rows): webhook verification, valid/invalid/missing signature, duplicate deliveries, batches,
+  buttons and list rows, unsupported media, long answers, replies outside the 24-hour window, Graph errors (131047, 130429
+  retry, expired token), delivery statuses (never go backwards), leads without a second phone question, hand-off, rate limit.
 
 ## Structure
 
@@ -133,9 +148,11 @@ app/
   llm/               provider interface, Gemini provider, offline demo provider
   verticals/         realty/ and shop/: knowledge base, catalog CSV, tools, persona, demo script
   bot/               Telegram handlers: chat, cards, lead capture, admin report
+  web/               FastAPI backend and widget.js for the website chat
+  whatsapp/          WhatsApp Cloud API webhook, Graph client, message rendering
   db.py              users, messages (with token usage), leads, catalogs
   engine.py          wires the configured vertical, index, provider and agent
-tests/               fake Bot API + retrieval, tools, agent, Gemini adapter and end-to-end tests
+tests/               fake Bot API, fake Graph API + retrieval, tools, agent, Gemini adapter and end-to-end tests
 scripts/             demo run that renders the screenshots
 docs/                screenshots, COSTS.md
 ```

@@ -24,7 +24,8 @@ class LeadNotifier(Protocol):
 
 
 class TelegramNotifier:
-    def __init__(self, settings: Settings, client: httpx.AsyncClient | None = None):
+    def __init__(self, settings: Settings, client: httpx.AsyncClient | None = None, channel: str = "website"):
+        self.channel = channel
         self.token = settings.bot_token
         self.admin_ids = sorted(settings.admin_ids)
         self.client = client or httpx.AsyncClient(timeout=10)
@@ -32,7 +33,7 @@ class TelegramNotifier:
     async def notify(self, lead: Lead, item_title: str, transcript: list[Message]) -> None:
         lines = "\n".join(f"{'👤' if m.role == 'user' else '🤖'} {escape(m.text[:200])}" for m in transcript) or "—"
         text = texts.LEAD_NOTIFY.format(
-            kind=f"{lead.kind} (website)", id=lead.id, user=escape(lead.name or "Website visitor"),
+            kind=f"{lead.kind} ({self.channel})", id=lead.id, user=escape(lead.name or f"{self.channel} visitor"),
             phone=escape(lead.phone),
             item=f"\nItem: {escape(lead.item_id)} · {escape(item_title)}" if lead.item_id else "",
             note=f"\nNote: {escape(lead.note)}" if lead.note and not lead.item_id else "",
@@ -49,7 +50,7 @@ class TelegramNotifier:
                 log.warning("could not notify admin %s about lead %s: %s", admin_id, lead.id, type(exc).__name__)
 
 
-def make_notifier(settings: Settings) -> LeadNotifier | None:
+def make_notifier(settings: Settings, channel: str = "website") -> LeadNotifier | None:
     if ":" in settings.bot_token and settings.admin_ids and "replace-me" not in settings.bot_token:
-        return TelegramNotifier(settings)
+        return TelegramNotifier(settings, channel=channel)
     return None

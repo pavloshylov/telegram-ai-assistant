@@ -39,6 +39,25 @@ assumptions (3,000 in / 150 out) as a safe upper bound; longer conversations car
 tokens. The free tier costs $0, but Google may use free-tier prompts to improve its products. Use a paid key for
 real customers.
 
+## WhatsApp messages (Meta fees)
+
+The WhatsApp channel adds Meta's message fees to the model bill above; the model cost per question is the same as in
+Telegram. What Meta's developer pricing page said on **23 Nov 2026** (read it again before quoting a client; the page has no
+publication date):
+
+- Since 1 Jul 2025 Meta charges **per message**, not per conversation, by message category and the recipient's country
+  calling code. Template messages (marketing, utility, authentication) are charged whenever they are sent.
+- Free-form **service** replies inside the 24-hour window are what this assistant sends. The page announces that from
+  **1 Oct 2026** Meta charges for service messages again (and for utility messages sent inside an open window), except a free
+  allowance of **1,000 service messages per business phone number per month**. A payment method on the business account is needed.
+  Meta's own marketing page (whatsappbusiness.com) still says service messages are free: the two pages disagree, so check the rate card.
+- Free entry points (click-to-WhatsApp ads) have their own free window.
+- The per-country rates are in Meta's downloadable rate cards (USD, EUR, ...); no rate is quoted here on purpose.
+
+How to estimate: one assistant answer is 1 to 3 WhatsApp messages (text, card, sometimes a second text), so
+`WhatsApp cost per conversation = messages sent × (Meta service-message rate for the country, or 0 inside the free allowance)`.
+On the **test number** nothing is charged. The usage report counts model tokens only; Meta's charges are in WhatsApp Manager.
+
 ## Optional paid embeddings (instead of the local model)
 
 | Model | Price per 1M tokens |

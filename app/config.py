@@ -40,6 +40,14 @@ class Settings:
     allowed_origins: tuple[str, ...] = ()  # sites allowed to embed the widget, e.g. https://www.example.com
     admin_api_key: str = ""  # enables /api/admin/* (sent as X-Admin-Key); empty = admin API off
     ip_rate_limit_per_hour: int = 120  # per client IP, on top of the per-visitor limit (visitors can rotate ids)
+    # --- WhatsApp Cloud API channel (python -m app.whatsapp)
+    whatsapp_token: str = ""  # access token (temporary on the test number, system-user token in production)
+    whatsapp_phone_number_id: str = ""
+    whatsapp_verify_token: str = ""  # any string you also type into the App Dashboard
+    whatsapp_app_secret: str = ""  # signs every webhook POST (X-Hub-Signature-256)
+    whatsapp_graph_version: str = "v27.0"
+    whatsapp_show_sources: bool = False  # True: keep [n] markers and a "Sources" line (off: chat reads like a person)
+    whatsapp_api_base: str = "https://graph.facebook.com"  # tests point this at a fake
 
     def is_admin(self, user_id: int) -> bool:
         return user_id in self.admin_ids
@@ -79,4 +87,11 @@ def load_settings(env_file: str | Path = ".env", require_bot_token: bool = True)
         ),
         admin_api_key=env.get("ADMIN_API_KEY", "").strip(),
         ip_rate_limit_per_hour=int(env.get("IP_RATE_LIMIT_PER_HOUR") or defaults.ip_rate_limit_per_hour),
+        whatsapp_token=env.get("WHATSAPP_TOKEN", "").strip(),
+        whatsapp_phone_number_id=env.get("WHATSAPP_PHONE_NUMBER_ID", "").strip(),
+        whatsapp_verify_token=env.get("WHATSAPP_VERIFY_TOKEN", "").strip(),
+        whatsapp_app_secret=env.get("WHATSAPP_APP_SECRET", "").strip(),
+        whatsapp_show_sources=env.get("WHATSAPP_SHOW_SOURCES", "").strip().lower() in {"1", "true", "yes"},
+        whatsapp_graph_version=env.get("WHATSAPP_GRAPH_VERSION") or defaults.whatsapp_graph_version,
+        whatsapp_api_base=(env.get("WHATSAPP_API_BASE") or defaults.whatsapp_api_base).rstrip("/"),
     )

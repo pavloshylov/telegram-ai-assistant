@@ -41,6 +41,8 @@ from app.db import Lead, User
 from app.verticals.base import Card
 from app.web.notify import LeadNotifier
 
+WA_USER_OFFSET = 10**16  # WhatsApp users: phone number + this offset (Telegram ids < 2^52 ~ 4.5e15, widget ids are negative)
+
 log = logging.getLogger(__name__)
 HERE = Path(__file__).parent
 SESSION_RE = r"^[A-Za-z0-9_-]{16,64}$"
@@ -291,7 +293,7 @@ def create_app(
         for lead_row, u in rows:
             writer.writerow([lead_row.id, lead_row.created_at.strftime("%Y-%m-%d %H:%M"), lead_row.kind,
                              lead_row.item_id or "", lead_row.phone, lead_row.name,
-                             "web" if u.id < 0 else "telegram", lead_row.note, lead_row.status])
+                             "web" if u.id < 0 else ("whatsapp" if u.id >= WA_USER_OFFSET else "telegram"), lead_row.note, lead_row.status])
         return Response(buf.getvalue(), media_type="text/csv; charset=utf-8",
                         headers={"Content-Disposition": 'attachment; filename="leads.csv"'})
 
