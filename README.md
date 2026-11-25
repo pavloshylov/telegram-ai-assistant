@@ -13,8 +13,8 @@ two ready-made businesses:
 Switching business = `VERTICAL=realty` or `VERTICAL=shop`. A new business is a folder with Markdown documents,
 a catalog CSV, a short persona and its tools.
 
-Python · aiogram 3 · Gemini API (google-genai) · local multilingual embeddings (fastembed) · BM25 · SQLAlchemy 2
-(SQLite / PostgreSQL) · FastAPI · WhatsApp Cloud API · 128 automated tests
+Python · aiogram 3 · Gemini API (google-genai) · Ollama (local models) · local multilingual embeddings (fastembed) · BM25 ·
+SQLAlchemy 2 (SQLite / PostgreSQL) · FastAPI · WhatsApp Cloud API · 134 automated tests
 
 | Free-text request → listing card | Answers from documents, with sources | Lead with the conversation for the agent |
 |---|---|---|
@@ -71,8 +71,9 @@ an unanswerable question becomes a hand-off to a person instead of a guess. Mode
 it reaches Telegram.
 
 **Provider-agnostic.** The agent talks to one small interface (`app/llm/base.py`). Included: a Gemini provider
-(google-genai, async, retries with backoff on 429/5xx, thought signatures preserved for Gemini 3 function calling)
-and the offline demo provider. OpenAI, Claude or a local model plug in as one more class.
+(google-genai, async, retries with backoff on 429/5xx, thought signatures preserved for Gemini 3 function calling),
+an Ollama provider for local open-source models (native `/api/chat` with function calling, no cloud, no API key)
+and the offline demo provider. OpenAI or Claude plug in as one more class.
 
 **Business features.** Item cards with Book a viewing / Order buttons, phone capture with Telegram's contact button
 (or typed and validated), instant lead notification to staff with the last messages of the conversation,
@@ -99,6 +100,12 @@ python -m app
     default 30) and is retried; `GEMINI_FALLBACK_MODEL` (e.g. `gemini-3.1-flash-lite`) takes over after the first
     failed attempt.
   - `python scripts/live_check.py both` repeats the live test without Telegram (needs only the API key).
+- **Local model (Ollama)**: `LLM_PROVIDER=ollama`, install [Ollama](https://ollama.com) and pull a model, e.g.
+  `ollama pull qwen2.5:3b-instruct`; settings `OLLAMA_MODEL`, `OLLAMA_BASE_URL`, `OLLAMA_NUM_CTX`, `OLLAMA_TIMEOUT_S`.
+  The model, the embeddings and the documents all stay on your machine. Checked live on 25 Nov 2026 with
+  `qwen2.5:3b-instruct`: function-calling search, answers from the documents with sources, hand-off to a
+  person (`python scripts/live_check.py both --provider ollama`). Response speed depends on the hardware and the
+  model; small models on modest hardware are slow, so the request timeout is generous.
 - **Website widget**: `python -m app.web` serves the API, `widget.js` and a demo site; embed it with one
   `<script src=".../widget.js">` tag. Same engine and database as the bot. See [docs/WIDGET.md](docs/WIDGET.md).
 - **WhatsApp**: `python -m app.whatsapp` serves Meta's webhook (needs a public HTTPS URL, e.g. a tunnel while testing).
@@ -118,7 +125,7 @@ python -m app
 
 ```bash
 pip install -r requirements-dev.txt
-pytest -q                                              # 128 tests, SQLite
+pytest -q                                              # 134 tests, SQLite
 TEST_DATABASE_URL=postgresql+asyncpg://... pytest -q   # same suite on PostgreSQL
 ```
 
@@ -131,6 +138,8 @@ TEST_DATABASE_URL=postgresql+asyncpg://... pytest -q   # same suite on PostgreSQ
 - **Gemini adapter:** request and response conversion against the real SDK types, thought signatures, hidden
   thinking text, retries on 429/5xx, timeouts and network errors, fallback model, no retry on 400 (no network calls).
   The live API run is separate: `scripts/live_check.py`.
+- **Ollama adapter:** text replies and token usage, tool calls and history conversion, HTTP errors and a retry on
+  connection errors (no running Ollama needed).
 - **Telegram end-to-end** through an in-process fake Bot API: sample questions with sources, search → card → booking
   → lead to staff, typed-phone validation and cancel, model hand-off, Ukrainian request, demo-mode honesty, history
   and token logging, rate limit, provider outage, admin report and CSV export.
@@ -145,7 +154,7 @@ TEST_DATABASE_URL=postgresql+asyncpg://... pytest -q   # same suite on PostgreSQ
 app/
   agent.py           retrieve → model → tools → answer with sources and cards
   rag.py             chunking, local embeddings + BM25 hybrid search, item re-ranking, citations
-  llm/               provider interface, Gemini provider, offline demo provider
+  llm/               provider interface, Gemini provider, Ollama provider, offline demo provider
   verticals/         realty/ and shop/: knowledge base, catalog CSV, tools, persona, demo script
   bot/               Telegram handlers: chat, cards, lead capture, admin report
   web/               FastAPI backend and widget.js for the website chat
