@@ -28,6 +28,15 @@ def make_provider(settings: Settings, vertical: Vertical) -> LLMProvider:
             fallback_model=settings.gemini_fallback_model,
             timeout_s=settings.gemini_timeout_s,
         )
+    if settings.llm_provider == "ollama":
+        from app.llm.ollama import OllamaProvider
+
+        return OllamaProvider(
+            model=settings.ollama_model,
+            base_url=settings.ollama_base_url,
+            num_ctx=settings.ollama_num_ctx,
+            timeout_s=settings.ollama_timeout_s,
+        )
     from app.llm.scripted import ScriptedProvider
 
     rules = importlib.import_module(f"app.verticals.{vertical.key}.demo").RULES

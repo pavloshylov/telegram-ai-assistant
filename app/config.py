@@ -21,7 +21,11 @@ def _read_env_file(path: Path) -> dict[str, str]:
 class Settings:
     bot_token: str
     vertical: str = "realty"  # realty | shop
-    llm_provider: str = "demo"  # demo (offline, scripted) | gemini
+    llm_provider: str = "demo"  # demo (offline, scripted) | gemini | ollama (local model)
+    ollama_model: str = "qwen2.5:3b-instruct"
+    ollama_base_url: str = "http://127.0.0.1:11434"
+    ollama_num_ctx: int = 4096
+    ollama_timeout_s: float = 600.0  # small local models on modest hardware are slow
     gemini_api_key: str = ""
     gemini_model: str = "gemini-3.5-flash-lite"
     gemini_fallback_model: str = ""  # tried after the first failed attempt (503, timeout); empty = same model
@@ -60,8 +64,8 @@ def load_settings(env_file: str | Path = ".env", require_bot_token: bool = True)
     if not token and require_bot_token:
         raise SystemExit("BOT_TOKEN is not set (see .env.example)")
     provider = env.get("LLM_PROVIDER", "demo").strip().lower()
-    if provider not in {"demo", "gemini"}:
-        raise SystemExit("LLM_PROVIDER must be demo or gemini")
+    if provider not in {"demo", "gemini", "ollama"}:
+        raise SystemExit("LLM_PROVIDER must be demo, gemini or ollama")
     if provider == "gemini" and not env.get("GEMINI_API_KEY"):
         raise SystemExit("LLM_PROVIDER=gemini needs GEMINI_API_KEY")
     vertical = env.get("VERTICAL", "realty").strip().lower()
@@ -72,6 +76,10 @@ def load_settings(env_file: str | Path = ".env", require_bot_token: bool = True)
         bot_token=token,
         vertical=vertical,
         llm_provider=provider,
+        ollama_model=env.get("OLLAMA_MODEL") or defaults.ollama_model,
+        ollama_base_url=(env.get("OLLAMA_BASE_URL") or defaults.ollama_base_url).rstrip("/"),
+        ollama_num_ctx=int(env.get("OLLAMA_NUM_CTX") or defaults.ollama_num_ctx),
+        ollama_timeout_s=float(env.get("OLLAMA_TIMEOUT_S") or defaults.ollama_timeout_s),
         gemini_api_key=env.get("GEMINI_API_KEY", ""),
         gemini_model=env.get("GEMINI_MODEL") or defaults.gemini_model,
         gemini_fallback_model=env.get("GEMINI_FALLBACK_MODEL", "").strip(),

@@ -52,14 +52,15 @@ async def test_system_prompt_carries_rules_and_context(stack):
 
 async def test_bad_tool_args_are_reported_to_the_model(stack):
     model = FakeModel(
-        LLMReply(tool_calls=[ToolCall("search_listings", {"district": "Chiado"})]),  # 'deal' missing
-        LLMReply(text="Do you want to rent or buy?"),
+        LLMReply(tool_calls=[ToolCall("search_listings", {"deal": "rent", "district": "Narnia"})]),  # not in the enum
+        LLMReply(text="Which district do you prefer?"),
     )
     _, sm, agent = await stack("realty", model)
     async with sm() as session:
-        result = await agent.answer(session, [], "Something in Chiado")
-    assert result.tool_log[0]["result"] == {"error": "invalid arguments", "details": ["deal: required"]}
-    assert result.text == "Do you want to rent or buy?" and result.cards == []
+        result = await agent.answer(session, [], "Something in Narnia")
+    logged = result.tool_log[0]["result"]
+    assert logged["error"] == "invalid arguments" and logged["details"] and "district" in logged["details"][0]
+    assert result.text == "Which district do you prefer?" and result.cards == []
 
 
 async def test_handoff_tool_sets_flag(stack):

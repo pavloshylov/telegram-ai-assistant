@@ -20,6 +20,12 @@ async def test_listing_search_filters(stack):
     assert out.cards[0].buttons[0].action == "book:NH-103"
 
 
+async def test_deal_defaults_to_rent_when_the_model_omits_it(stack):
+    _, sm, agent = await stack("realty")
+    out = await run(agent, sm, "search_listings", {"district": "Chiado", "min_bedrooms": 2, "max_price": 2400, "pets": True})
+    assert [c.item_id for c in out.cards] == ["NH-103"]  # same as with deal="rent"
+
+
 async def test_district_match_ignores_accents_and_case(stack):
     _, sm, agent = await stack("realty")
     out = await run(agent, sm, "search_listings", {"deal": "rent", "district": "Parque das Nações", "max_bedrooms": 0})

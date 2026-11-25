@@ -31,7 +31,6 @@ from app.config import Settings, load_settings  # noqa: E402
 from app.db import init_db, make_engine, make_session_maker  # noqa: E402
 from app.engine import build_agent  # noqa: E402
 from app.llm.base import ChatMessage, LLMError, LLMReply, ToolSpec  # noqa: E402
-from app.llm.gemini import GeminiProvider  # noqa: E402
 from app.main import build_dispatcher  # noqa: E402
 from app.rag import Embedder  # noqa: E402
 from tests.fake_telegram import FakeTelegram, Harness  # noqa: E402
@@ -87,7 +86,7 @@ class Call:
 class Recorder:
     """Wraps a provider and records every model call."""
 
-    def __init__(self, inner: GeminiProvider):
+    def __init__(self, inner):
         self.inner = inner
         self.name = inner.name
         self.calls: list[Call] = []
@@ -101,7 +100,7 @@ class Recorder:
             raise
         self.calls.append(Call(time.perf_counter() - start, reply.usage.input_tokens, reply.usage.output_tokens,
                                [t.name for t in reply.tool_calls], [t.args for t in reply.tool_calls],
-                               self.inner.last_model))
+                               getattr(self.inner, "last_model", "")))
         return reply
 
 
@@ -123,10 +122,12 @@ def strip_html(text: str) -> str:
     return re.sub(r"<[^>]+>", "", text)
 
 
-async def run_vertical(vertical: str, base: Settings, embedder: Embedder, tmp: Path, delay: float, log: list[str]):
+async def run_vertical(vertical: str, base: Settings, embedder: Embedder, tmp: Path, delay: float, log: list[str],
+                       only: set[int] | None = None):
     settings = Settings(
-        bot_token="42:LIVE", vertical=vertical, llm_provider="gemini", gemini_api_key=base.gemini_api_key,
-        gemini_model=base.gemini_model, gemini_fallback_model=base.gemini_fallback_model,
+        bot_token="42:LIVE", vertical=vertical, llm_provider=base.llm_provider, gemini_api_key=base.gemini_api_key,
+        ollama_model=base.ollama_model, ollama_base_url=base.ollama_base_url, ollama_num_ctx=base.ollama_num_ctx,
+        ollama_timeout_s=base.ollama_timeout_s, gemini_model=base.gemini_model, gemini_fallback_model=base.gemini_fallback_model,
         gemini_timeout_s=base.gemini_timeout_s, price_input_per_m=base.price_input_per_m,
         price_output_per_m=base.price_output_per_m, admin_ids=frozenset({ADMIN_ID}), data_dir=tmp,
         database_url=f"sqlite+aiosqlite:///{(tmp / f'{vertical}.db').as_posix()}",
@@ -141,9 +142,12 @@ async def run_vertical(vertical: str, base: Settings, embedder: Embedder, tmp: P
     owner, guest = env.user(ADMIN_ID, "Owner", "owner_live"), env.user(201, "Anna", "anna_live")
     rows = []
     try:
-        log.append(f"\n## {vertical} — model {settings.gemini_model}\n")
+        shown_model = settings.ollama_model if settings.llm_provider == "ollama" else settings.gemini_model
+        log.append(f"\n## {vertical} — model {shown_model}\n")
         await env.start(guest)
         for n, (kind, payload) in enumerate(SCENARIOS[vertical], 1):
+            if only and n not in only:
+                continue
             if kind != "contact" and wants_phone(env, guest) and kind != "admin":
                 await env.send(guest, "/cancel")
                 log.append("_(phone prompt left open by the previous step → /cancel sent)_\n")
@@ -194,8 +198,9 @@ async def run_vertical(vertical: str, base: Settings, embedder: Embedder, tmp: P
 
 async def run_rate_limit(base: Settings, embedder: Embedder, tmp: Path, delay: float, log: list[str]) -> list[str]:
     settings = Settings(
-        bot_token="42:LIVE", vertical="shop", llm_provider="gemini", gemini_api_key=base.gemini_api_key,
-        gemini_model=base.gemini_model, gemini_fallback_model=base.gemini_fallback_model,
+        bot_token="42:LIVE", vertical="shop", llm_provider=base.llm_provider, gemini_api_key=base.gemini_api_key,
+        ollama_model=base.ollama_model, ollama_base_url=base.ollama_base_url, ollama_num_ctx=base.ollama_num_ctx,
+        ollama_timeout_s=base.ollama_timeout_s, gemini_model=base.gemini_model, gemini_fallback_model=base.gemini_fallback_model,
         gemini_timeout_s=base.gemini_timeout_s, admin_ids=frozenset({ADMIN_ID}), data_dir=tmp, rate_limit_per_hour=3,
         database_url=f"sqlite+aiosqlite:///{(tmp / 'rate.db').as_posix()}",
     )
@@ -226,28 +231,39 @@ async def main() -> None:
     parser.add_argument("--model", default="")
     parser.add_argument("--fallback", default="", help="fallback model for 503/timeouts")
     parser.add_argument("--skip-rate", action="store_true")
+    parser.add_argument("--provider", default="gemini", choices=["gemini", "ollama"])
+    parser.add_argument("--ollama-model", default="")
+    parser.add_argument("--only", default="", help="comma-separated scenario step numbers to run, e.g. 1,2,7")
     args = parser.parse_args()
 
-    base = load_settings(ROOT / ".env") if (ROOT / ".env").exists() else None
-    if base is None or not base.gemini_api_key:
-        raise SystemExit("Put GEMINI_API_KEY (and BOT_TOKEN=any text for this script) into .env first.")
-    if args.model:
+    if args.provider == "ollama":
+        base = Settings(bot_token="42:LIVE", llm_provider="ollama")
+        if args.ollama_model:
+            base = Settings(**{**base.__dict__, "ollama_model": args.ollama_model})
+    else:
+        base = load_settings(ROOT / ".env") if (ROOT / ".env").exists() else None
+        if base is None or not base.gemini_api_key:
+            raise SystemExit("Put GEMINI_API_KEY (and BOT_TOKEN=any text for this script) into .env first.")
+    if args.model and args.provider == "gemini":
         base = Settings(**{**base.__dict__, "gemini_model": args.model})
-    if args.fallback:
+    if args.fallback and args.provider == "gemini":
         base = Settings(**{**base.__dict__, "gemini_fallback_model": args.fallback})
     counter = WarningCounter()
     logging.getLogger().addHandler(counter)
     tmp = Path(tempfile.mkdtemp(prefix="assistant_live_"))
     embedder = Embedder(cache_dir=str(ROOT / "data" / "models"))
     stamp = datetime.now().strftime("%Y-%m-%d_%H%M")
-    log = [f"# Live check {stamp}\n", f"Model: `{base.gemini_model}` · fallback: `{base.gemini_fallback_model or 'none'}` · pause between questions {args.delay}s\n"]
+    model_line = (f"Model: `{base.ollama_model}` (local, Ollama)" if args.provider == "ollama"
+                  else f"Model: `{base.gemini_model}` · fallback: `{base.gemini_fallback_model or 'none'}`")
+    log = [f"# Live check {stamp}\n", f"{model_line} · pause between questions {args.delay}s\n"]
+    only = {int(x) for x in args.only.split(",") if x.strip()}
     summary = []
     all_calls: list[Call] = []
     for vertical in (["realty", "shop"] if args.vertical == "both" else [args.vertical]):
-        rows, calls = await run_vertical(vertical, base, embedder, tmp, args.delay, log)
+        rows, calls = await run_vertical(vertical, base, embedder, tmp, args.delay, log, only)
         all_calls += calls
         summary.append((vertical, rows))
-    if not args.skip_rate:
+    if not args.skip_rate and args.provider == "gemini":
         await run_rate_limit(base, embedder, tmp, args.delay, log)
 
     ok = [c for c in all_calls if not c.error]
@@ -262,7 +278,7 @@ async def main() -> None:
     log.append(f"- provider warnings (retries etc.): {len(counter.lines)}")
     log.extend(f"  - {line}" for line in counter.lines[:20])
     text = "\n".join(log)
-    for secret in {base.gemini_api_key}:
+    for secret in {base.gemini_api_key} - {""}:
         text = text.replace(secret, "***")
     OUT.mkdir(parents=True, exist_ok=True)
     path = OUT / f"{stamp}.md"

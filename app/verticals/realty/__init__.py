@@ -73,7 +73,7 @@ SEARCH_SPEC = ToolSpec(
     parameters={
         "type": "object",
         "properties": {
-            "deal": {"type": "string", "enum": ["rent", "sale"], "description": "rent or buy (sale)"},
+            "deal": {"type": "string", "enum": ["rent", "sale"], "description": "rent or buy (sale); rent if the user does not say"},
             "district": {"type": "string", "enum": DISTRICTS},
             "min_bedrooms": {"type": "integer", "minimum": 0, "description": "0 = studio"},
             "max_bedrooms": {"type": "integer", "minimum": 0},
@@ -87,7 +87,7 @@ SEARCH_SPEC = ToolSpec(
             },
             "limit": {"type": "integer", "minimum": 1, "description": "1-5, default 3"},
         },
-        "required": ["deal"],
+        "required": [],  # `deal` is optional: small local models often leave it out; it defaults to rent
     },
 )
 
@@ -96,7 +96,7 @@ async def search_listings(ctx: ToolContext, args: dict[str, Any]) -> ToolOutput:
     limit = min(int(args.get("limit", 3)), 5)
 
     async def run(max_price: int | None) -> list[Listing]:
-        query = select(Listing).where(Listing.deal == args["deal"])
+        query = select(Listing).where(Listing.deal == args.get("deal", "rent"))
         if "min_bedrooms" in args:
             query = query.where(Listing.rooms >= args["min_bedrooms"])
         if "max_bedrooms" in args:
