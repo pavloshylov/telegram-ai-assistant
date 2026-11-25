@@ -97,17 +97,44 @@ def book(page: Page, button: str, phone: str, name: str, log: list[str]) -> None
     log.append(f"- lead sent via the card button «{button}» → {page.locator('.msg.bot').last.inner_text()}")
 
 
+ANDROID_UA = ("Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) "
+              "Chrome/131.0.0.0 Mobile Safari/537.36")
+# Phone shots are taken on Windows, so without this the page would use Windows fonts and emoji. Android Chrome renders
+# the same page with Roboto and Noto Color Emoji; load those (Google Fonts) into the page and the widget's shadow root.
+ANDROID_FONTS_JS = """() => {
+  const css = "*{font-family:Roboto,'Noto Color Emoji',sans-serif !important}";
+  const add = (root, parent) => {
+    if (root.querySelector && root.querySelector('#android-fonts')) return;
+    const s = document.createElement('style'); s.id = 'android-fonts'; s.textContent = css; parent.appendChild(s);
+  };
+  if (!document.getElementById('android-fonts-link')) {
+    const l = document.createElement('link'); l.id = 'android-fonts-link'; l.rel = 'stylesheet';
+    l.href = 'https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Noto+Color+Emoji&display=block';
+    document.head.appendChild(l);
+  }
+  add(document, document.head);
+  document.querySelectorAll('*').forEach(el => { if (el.shadowRoot) add(el.shadowRoot, el.shadowRoot); });
+}"""
+
+
 def run_scenario(browser, base: str, vertical: str, mode: str, log: list[str]) -> None:
     plan = PLAN[vertical]
     if mode == "desktop":
         context = browser.new_context(viewport={"width": 1440, "height": 900}, device_scale_factor=2)
     else:
-        context = browser.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=3, is_mobile=True, has_touch=True)
+        context = browser.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=3, is_mobile=True,
+                                      has_touch=True, user_agent=ANDROID_UA)
     page = context.new_page()
     errors = []
     page.on("pageerror", lambda e: errors.append(str(e)))
     page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
-    shot = lambda n: page.screenshot(path=str(OUT / f"widget_{vertical}_{mode}_{n}.png"))  # noqa: E731
+
+    def shot(n: int) -> None:
+        if mode == "mobile":
+            page.evaluate(ANDROID_FONTS_JS)
+            page.evaluate("document.fonts.ready")
+            page.wait_for_timeout(1500)  # emoji font files load on first use
+        page.screenshot(path=str(OUT / f"widget_{vertical}_{mode}_{n}.png"))
     log.append(f"\n### {plan['name']} · {mode}\n")
     page.goto(base)
     page.locator(".launcher").click()
